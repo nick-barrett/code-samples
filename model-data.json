@@ -1,0 +1,1366 @@
+{
+    "edge3X00": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "GE5",
+            "GE6",
+            "SFP1",
+            "SFP2",
+            "SFP3",
+            "SFP4"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                }
+            ]
+        }
+    },
+    "edge3X10": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "GE5",
+            "GE6",
+            "SFP1",
+            "SFP2",
+            "SFP3",
+            "SFP4",
+            "SFP5",
+            "SFP6",
+            "SFP7",
+            "SFP8"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                }
+            ]
+        }
+    },
+    "edge6X0": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "GE5",
+            "GE6",
+            "SFP1",
+            "SFP2"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "WLAN1",
+                    "type": "wireless",
+                    "ssid": "vc-wifi",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "cwp": false,
+                    "passphrase": "vcsecret",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": true,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                },
+                {
+                    "name": "WLAN2",
+                    "type": "wireless",
+                    "ssid": "vc-wifi-guest",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "passphrase": "vcsecret",
+                    "disabled": true,
+                    "cwp": true,
+                    "authenticationType": "none",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                }
+            ]
+        }
+    },
+    "edge610lte": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "GE5",
+            "GE6",
+            "SFP1",
+            "SFP2",
+            "CELL1",
+            "CELL2"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "WLAN1",
+                    "type": "wireless",
+                    "ssid": "vc-wifi",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "cwp": false,
+                    "passphrase": "vcsecret",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": true,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                },
+                {
+                    "name": "WLAN2",
+                    "type": "wireless",
+                    "ssid": "vc-wifi-guest",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "passphrase": "vcsecret",
+                    "disabled": true,
+                    "cwp": true,
+                    "authenticationType": "none",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                }
+            ]
+        }
+    },
+    "edge710": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "SFP1"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "WLAN1",
+                    "type": "wireless",
+                    "ssid": "vc-wifi",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "cwp": false,
+                    "passphrase": "vcsecret",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": true,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                },
+                {
+                    "name": "WLAN2",
+                    "type": "wireless",
+                    "ssid": "vc-wifi-guest",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "passphrase": "vcsecret",
+                    "disabled": true,
+                    "cwp": true,
+                    "authenticationType": "none",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                }
+            ]
+        }
+    },
+    "edge7105g": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "SFP1",
+            "CELL1",
+            "CELL2"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "WLAN1",
+                    "type": "wireless",
+                    "ssid": "vc-wifi",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "cwp": false,
+                    "passphrase": "vcsecret",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": true,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                },
+                {
+                    "name": "WLAN2",
+                    "type": "wireless",
+                    "ssid": "vc-wifi-guest",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "passphrase": "vcsecret",
+                    "disabled": true,
+                    "cwp": true,
+                    "authenticationType": "none",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                }
+            ]
+        }
+    },
+    "edge7X0": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "GE5",
+            "GE6",
+            "SFP1",
+            "SFP2"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                }
+            ]
+        }
+    },
+    "virtual": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "GE5",
+            "GE6",
+            "GE7",
+            "GE8"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                }
+            ]
+        }
+    },
+    "edge1000qat": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "GE5",
+            "GE6",
+            "SFP1",
+            "SFP2"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                }
+            ]
+        }
+    },
+    "edge1000": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "GE5",
+            "GE6",
+            "SFP1",
+            "SFP2"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE3",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE4",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                }
+            ]
+        }
+    },
+    "edge840": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "GE5",
+            "GE6",
+            "SFP1",
+            "SFP2"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                }
+            ]
+        }
+    },
+    "edge510": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "WLAN1",
+                    "type": "wireless",
+                    "ssid": "vc-wifi",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "cwp": false,
+                    "passphrase": "vcsecret",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": true,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                },
+                {
+                    "name": "WLAN2",
+                    "type": "wireless",
+                    "ssid": "vc-wifi-guest",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "passphrase": "vcsecret",
+                    "disabled": true,
+                    "cwp": true,
+                    "authenticationType": "none",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                }
+            ]
+        }
+    },
+    "edge510lte": {
+        "routedInterfaces": [
+            "GE3",
+            "GE4",
+            "CELL1"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "GE1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "GE2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "WLAN1",
+                    "type": "wireless",
+                    "ssid": "vc-wifi",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "cwp": false,
+                    "passphrase": "vcsecret",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": true,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                },
+                {
+                    "name": "WLAN2",
+                    "type": "wireless",
+                    "ssid": "vc-wifi-guest",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "passphrase": "vcsecret",
+                    "disabled": true,
+                    "cwp": true,
+                    "authenticationType": "none",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                }
+            ]
+        }
+    },
+    "edge5X0": {
+        "routedInterfaces": [
+            "GE1",
+            "GE2",
+            "SFP1",
+            "SFP2"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "LAN1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "LAN2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "LAN3",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "LAN4",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "LAN5",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "LAN6",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "LAN7",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "LAN8",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": false,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    }
+                },
+                {
+                    "name": "WLAN1",
+                    "type": "wireless",
+                    "ssid": "vc-wifi",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "cwp": false,
+                    "passphrase": "vcsecret",
+                    "vlanIds": [
+                        1
+                    ],
+                    "disabled": true,
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                },
+                {
+                    "name": "WLAN2",
+                    "type": "wireless",
+                    "ssid": "vc-wifi-guest",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "passphrase": "vcsecret",
+                    "disabled": true,
+                    "cwp": true,
+                    "authenticationType": "none",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                }
+            ]
+        }
+    },
+    "edge500": {
+        "routedInterfaces": [
+            "INTERNET1",
+            "INTERNET2",
+            "INTERNET3"
+        ],
+        "lan": {
+            "interfaces": [
+                {
+                    "name": "LAN1",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "disabled": false
+                },
+                {
+                    "name": "LAN2",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "disabled": false
+                },
+                {
+                    "name": "LAN3",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "disabled": false
+                },
+                {
+                    "name": "LAN4",
+                    "type": "wired",
+                    "cwp": false,
+                    "portMode": "access",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "disabled": false
+                },
+                {
+                    "name": "WLAN1",
+                    "type": "wireless",
+                    "ssid": "vc-wifi",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "cwp": false,
+                    "passphrase": "vcsecret",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "disabled": false,
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                },
+                {
+                    "name": "WLAN2",
+                    "type": "wireless",
+                    "ssid": "vc-wifi-guest",
+                    "broadcastSsid": true,
+                    "securityMode": "WPA2Personal",
+                    "passphrase": "vcsecret",
+                    "disabled": true,
+                    "cwp": true,
+                    "authenticationType": "none",
+                    "vlanIds": [
+                        1
+                    ],
+                    "l2": {
+                        "autonegotiation": true,
+                        "speed": "100M",
+                        "duplex": "FULL",
+                        "MTU": 1500,
+                        "losDetection": false,
+                        "probeInterval": "3"
+                    },
+                    "macAllowlist": {
+                        "enabled": false,
+                        "enableMACFilteringForAPProbes": true,
+                        "allowedMacs": []
+                    },
+                    "radiusAclCheck": false
+                }
+            ]
+        }
+    }
+}
