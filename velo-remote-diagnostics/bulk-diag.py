@@ -2,111 +2,15 @@ from dataclasses import dataclass
 import datetime
 import json
 import asyncio
-import os
 import aiostream
-from typing import Any, AsyncGenerator, Callable, Dict, List, cast
+from typing import Any, Callable, Dict, List
 import aiohttp
-import dataclasses_json
 import websockets
 import dotenv
 
-
-def read_env(name: str) -> str:
-    value = os.getenv(name)
-    assert value is not None, f"missing environment var {name}"
-    return value
-
-
-@dataclass
-class CommonData:
-    vco: str
-    token: str
-    enterprise_id: int
-    session: aiohttp.ClientSession
-
-    def __post_init__(self):
-        self.validate()
-
-        self.session.headers.update({"Authorization": f"Token {self.token}"})
-
-    def validate(self):
-        if any(
-            missing_inputs := [
-                v is None for v in [self.vco, self.token, self.enterprise_id]
-            ]
-        ):
-            raise ValueError(f"missing input data: {missing_inputs}")
-
-
-@dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)
-@dataclass()
-class EnterpriseEdgeListEdge:
-    id: int | None
-    logical_id: str | None
-    name: str | None
-    edge_state: str | None
-
-
-async def do_portal(c: CommonData, method: str, params: dict):
-    async with c.session.post(
-        f"https://{c.vco}/portal/",
-        json={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": method,
-            "params": params,
-        },
-    ) as req:
-        resp = await req.json()
-        if "result" not in resp:
-            raise ValueError(json.dumps(resp, indent=2))
-        return resp["result"]
-
-
-async def get_enterprise_edge_list_raw(
-    c: CommonData,
-    with_params: list[str] | None,
-    filters: dict | None,
-    next_page: str | None = None,
-) -> dict[str, list | dict]:
-    params_object: dict[str, Any] = {
-        "enterpriseId": c.enterprise_id,
-        "limit": 500,
-        "sortBy": [{"attribute": "edgeState", "type": "ASC"}],
-    }
-
-    if with_params:
-        params_object["with"] = with_params
-
-    if filters:
-        params_object["filters"] = filters
-    else:
-        params_object["_filterSpec"] = True
-
-    if next_page:
-        params_object["nextPageLink"] = next_page
-
-    return await do_portal(c, "enterprise/getEnterpriseEdges", params_object)
-
-
-async def get_enterprise_edge_list_full(
-    c: CommonData, with_params: List[str] | None, filters: Dict[Any, Any] | None
-) -> AsyncGenerator[EnterpriseEdgeListEdge, None]:
-    next_page = None
-    more = True
-
-    while more:
-        resp = await get_enterprise_edge_list_raw(c, with_params, filters, next_page)
-
-        meta: Dict[str, Dict[Any, Any]] = cast(
-            Dict[str, Dict[Any, Any]], resp.get("metaData", {})
-        )
-        more = meta.get("more", False)
-        next_page = cast(str | None, meta.get("nextPageLink", None))
-
-        data: List[Dict[str, Any]] = cast(List[Dict[str, Any]], resp.get("data", []))
-        for d in data:
-            yield EnterpriseEdgeListEdge.from_dict(d)  # type: ignore
+from veloapi.api import get_enterprise_edge_list_full
+from veloapi.models import CommonData, EnterpriseEdgeListEdge
+from veloapi.util import read_env
 
 
 @dataclass

@@ -1,6 +1,5 @@
 from collections import deque
 import time
-import json
 import datetime
 import asyncio
 import logging
@@ -10,61 +9,12 @@ import duckdb
 import polars as pl
 
 from veloapi.api import (
-    FlowPathIndices,
-    FlowPathNames,
     FlowStatsFilter,
-    get_edge_flow_visibility_metrics_fast,
     get_enterprise_flow_metrics,
     get_routable_applications,
 )
 from veloapi.models import CommonData
 from veloapi.util import read_env
-
-"""
-
-- generate 1 hour time intervals
-- for each time interval:
-  - get enterprise flow metrics viewing by application - limit N sort flowCount
-  - for each application app
-    - get ent flow metrics viewing by edgeLogicalId - filter application = app
-  - get aggregate edge link metrics
-
-- analysis:
-select 
-    startTime, edgeLogicalId, application, sum(bytesRx) as bytesRx, sum(bytesTx) as bytesTx, sum(totalBytes) as totalBytes
-from
-    app_edge_stats
-group by
-    (startTime, edgeLogicalId, application)
-order by
-    totalBytes desc
-limit 10;
-
-select     
-    startTime, edgeLogicalId, ANY_VALUE(app_names."name") as appName, sum(bytesRx) as bytesRx, sum(bytesTx) as bytesTx, sum(totalBytes) as totalBytes 
-from    
-    app_edge_stats, app_names 
-where 
-    app_names.id = app_edge_stats.application 
-group by    
-    (startTime, edgeLogicalId, application) 
-order by    
-    totalBytes desc 
-limit 20;
-
-select     
-    startTime, sourceIp, ANY_VALUE(app_names."name") as appName, sum(bytesRx) as bytesRx, sum(bytesTx) as bytesTx, sum(totalBytes) as totalBytes 
-from    
-    app_client_stats, app_names 
-where 
-    app_names.id = app_client_stats.application 
-group by    
-    (startTime, sourceIp, application) 
-order by    
-    totalBytes desc 
-limit 20;
-
-"""
 
 
 def floor_datetime_to_start_of_day(dt: datetime.datetime):
@@ -74,7 +24,7 @@ def floor_datetime_to_start_of_day(dt: datetime.datetime):
 
 
 def build_ent_flow_metrics_df(
-    metric_rows: dict[str, int | str],
+    metric_rows: list[dict[str, int | str]],
     start_time: datetime.datetime,
     view_by: str,
     additional_fields: None | dict[str, int | str | datetime.datetime] = None,
@@ -313,44 +263,14 @@ CREATE TABLE IF NOT EXISTS app_names (
     )
 
 
-async def old_main_stuff(
-    data: CommonData,
-    session: aiohttp.ClientSession,
-    edge_id: int,
-    db: duckdb.DuckDBPyConnection,
-):
-    start_time = datetime.datetime.now() - datetime.timedelta(days=1)
-    end_time = datetime.datetime.now() - datetime.timedelta(hours=1)
-
-    column_names = None
-
-    async for columns, batch in get_edge_flow_visibility_metrics_fast(
-        data, edge_id, start_time, end_time
-    ):
-        if column_names is None:
-            column_names = columns
-            print(column_names)
-            print(batch[0])
-
-        dataframe_dict = {
-            col: [row[i] for row in batch] for i, col in enumerate(columns)
-        }
-        dataframe_dict["edgeId"] = [edge_id] * len(batch)
-        batch_df = pl.DataFrame(dataframe_dict)
-
-        stmt = ", ".join([col for col in column_names])
-        db.sql("INSERT INTO flow_stats SELECT edgeId, {} FROM batch_df".format(stmt))
-
-
 async def main(session: aiohttp.ClientSession):
     data = CommonData(
         read_env("VCO"), read_env("VCO_TOKEN"), int(read_env("ENT_ID")), session
     )
 
-    db = duckdb.connect("vco-analysis.db")
+    db = duckdb.connect("data/vco-analysis.db")
     create_table(db)
 
-    # edge_id = 5562
     start_time = datetime.datetime.now() - datetime.timedelta(days=3)
     end_time = datetime.datetime.now() - datetime.timedelta(days=2)
     await fetch_enterprise_traffic_data(data, db, start_time, end_time)

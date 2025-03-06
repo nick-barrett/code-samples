@@ -1,17 +1,21 @@
+import datetime
+import pathlib
+from enum import Enum
 import uuid
 import json
 import asyncio
 import dataclasses
-import logging
 from typing import Any, Literal
-import dataclasses_json
-import dotenv
 import aiohttp
-import yaml
 from copy import deepcopy
+from contextlib import asynccontextmanager
 
-from veloapi.models import CommonData, EdgeProvisionParams
-from veloapi.util import extract_module, read_env
+from fastapi import FastAPI
+from pydantic import BaseModel, Field
+from apscheduler.schedulers.background import BaseScheduler, BackgroundScheduler
+
+from veloapi.models import CommonData, ConfigModule, ConfigProfile, EdgeProvisionParams
+from veloapi.util import extract_module
 from veloapi.api import (
     edge_provision,
     get_enterprise_edge_list_full_dict,
@@ -25,46 +29,51 @@ vnf_models = set(
     ["edge5X0", "edge6X0", "edge840", "edge1000qat", "edge3X00", "edge3X10"]
 )
 
-@dataclasses.dataclass
-class ConfigModule:
-    raw: dict
-    id: int = dataclasses.field(init=False)
-    name: str = dataclasses.field(init=False)
-    data: dict[str, list | dict] = dataclasses.field(init=False)
-    refs: dict[str, list | dict] = dataclasses.field(init=False)
-
-    def __post_init__(self):
-        self.id = self.raw["id"]
-        self.name = self.raw["name"]
-        self.data = self.raw["data"]
-        self.refs = self.raw["refs"] if "refs" in self.raw else {}
+migration_timeout = datetime.timedelta(hours=1)
+migration_cleanup_timeout = datetime.timedelta(hours=12)
 
 
-@dataclasses.dataclass
-class ConfigProfile:
-    raw: dict
-    id: int = dataclasses.field(init=False)
-    name: str = dataclasses.field(init=False)
-    device_settings: ConfigModule = dataclasses.field(init=False)
-    qos: ConfigModule | None = dataclasses.field(init=False)
-    firewall: ConfigModule | None = dataclasses.field(init=False)
+class DeviceMapIn(BaseModel):
+    name: str
+    source_model: str
+    target_model: str
+    interface_map: dict[str, str]
 
-    def __post_init__(self):
-        self.id = self.raw["id"]
-        self.name = self.raw["name"]
 
-        device_settings = extract_module(self.raw["modules"], "deviceSettings")
-        if device_settings is None:
-            raise ValueError("deviceSettings is None")
-        self.device_settings = ConfigModule(device_settings)
+class EdgeEntryIn(BaseModel):
+    name: str
+    device_map: str
 
-        qos = extract_module(self.raw["modules"], "QOS")
-        if qos is not None:
-            self.qos = ConfigModule(qos)
 
-        firewall = extract_module(self.raw["modules"], "firewall")
-        if firewall is not None:
-            self.firewall = ConfigModule(firewall)
+class MigrationConfig(BaseModel):
+    vco_fqdn: str
+    vco_token: str
+    enterprise_id: int | None = Field(default=None)
+    device_maps: list[DeviceMapIn]
+    edges: list[EdgeEntryIn]
+
+
+class MigrationStatus(str, Enum):
+    waiting = "waiting"
+    running = "running"
+    cancelled = "cancelled"
+    error = "error"
+    done = "done"
+
+
+class MigrationBase(BaseModel):
+    config: MigrationConfig
+
+
+class MigrationCreate(MigrationBase):
+    pass
+
+
+class Migration(MigrationBase):
+    id: uuid.UUID
+    start: datetime.datetime
+    log: list[str] = Field(default_factory=lambda: [])
+    status: MigrationStatus
 
 
 type EdgeModelName = str
@@ -99,24 +108,24 @@ class EdgeEntry:
 @dataclasses.dataclass
 class Config:
     device_maps: list[DeviceMap]
-    edge_entries: list[EdgeEntry]
+    edges: list[EdgeEntry]
     device_maps_dict: dict[MapName, DeviceMap] = dataclasses.field(
         init=False, default_factory=dict
     )
-    edge_entries_dict: dict[EdgeName, EdgeEntry] = dataclasses.field(
+    edges_dict: dict[EdgeName, EdgeEntry] = dataclasses.field(
         init=False, default_factory=dict
     )
 
     def __post_init__(self):
         self.device_maps_dict = {m.name: m for m in self.device_maps}
-        self.edge_entries_dict = {e.name: e for e in self.edge_entries}
+        self.edges_dict = {e.name: e for e in self.edges}
 
 
 def load_model_data(raw_model_data: Any):
     model_data.update(raw_model_data)
 
-def load_config(raw_cfg: Any) -> Config:
 
+def load_config(raw_cfg: Any) -> Config:
     device_maps: list[DeviceMap] = []
     for raw_dm in raw_cfg["device_maps"]:
         dm = DeviceMap(
@@ -151,27 +160,27 @@ def model_contains_intf(model: EdgeModelName, intf: InterfaceName) -> bool:
     return in_routed or in_switched
 
 
-def validate_config(config: Config) -> bool:
+def validate_config(config: Config, migration: MigrationBase) -> bool:
     for map in config.device_maps:
         if map.source_model not in model_data:
-            logging.error(f"Model {map.source_model} not known")
+            migration.log.append(f"Model {map.source_model} not known")
             return False
         if map.target_model not in model_data:
-            logging.error(f"Model {map.target_model} not known")
+            migration.log.append(f"Model {map.target_model} not known")
             return False
         for source_intf, dest_intf in map.interface_map.items():
             if not model_contains_intf(map.source_model, source_intf):
-                logging.error(
+                migration.log.append(
                     f"Interface {source_intf} not found in model {map.source_model}"
                 )
                 return False
             if not model_contains_intf(map.target_model, dest_intf):
-                logging.error(
+                migration.log.append(
                     f"Interface {dest_intf} not found in model {map.target_model}"
                 )
                 return False
         if len(set(map.interface_map.values())) != len(map.interface_map.keys()):
-            logging.error(f"Duplicate target interfaces in map {map.name}")
+            migration.log.append(f"Duplicate target interfaces in map {map.name}")
             return False
     return True
 
@@ -494,16 +503,16 @@ def get_default_model_config(edge: EdgeEntry, model: EdgeModelName) -> dict[str,
     }
 
 
-def find_switched(cfg: dict[str, Any], name: str) -> int | None:
-    if "lan" in cfg and "interfaces" in cfg["lan"]:
-        for index, intf in enumerate(cfg["lan"]["interfaces"]):
+def find_switched_index(model_cfg: dict[str, Any], name: str) -> int | None:
+    if "lan" in model_cfg and "interfaces" in model_cfg["lan"]:
+        for index, intf in enumerate(model_cfg["lan"]["interfaces"]):
             if intf["name"] == name:
                 return index
     return None
 
 
-def find_routed(cfg: dict[str, Any], name: str) -> int | None:
-    for index, intf in enumerate(cfg["routedInterfaces"]):
+def find_routed_index(model_cfg: dict[str, Any], name: str) -> int | None:
+    for index, intf in enumerate(model_cfg["routedInterfaces"]):
         if intf["name"] == name:
             return index
     return None
@@ -515,14 +524,16 @@ def fix_profile_model_intf(
     dest_cfg: dict[str, Any],
     dest_intf: str,
 ):
-    source_switched_index = find_switched(source_cfg, source_intf)
+    source_switched_index = find_switched_index(source_cfg, source_intf)
     source_routed_index = (
-        find_routed(source_cfg, source_intf) if source_switched_index is None else None
+        find_routed_index(source_cfg, source_intf)
+        if source_switched_index is None
+        else None
     )
 
-    dest_switched_index = find_switched(dest_cfg, dest_intf)
+    dest_switched_index = find_switched_index(dest_cfg, dest_intf)
     dest_routed_index = (
-        find_routed(dest_cfg, dest_intf) if dest_switched_index is None else None
+        find_routed_index(dest_cfg, dest_intf) if dest_switched_index is None else None
     )
 
     if source_switched_index is not None and dest_routed_index is not None:
@@ -545,52 +556,61 @@ def fix_profile_model_intf(
         dest_cfg["routedInterfaces"][dest_routed_index] = routed_intf
 
 
-async def fix_profile(common: CommonData, edge: EdgeEntry):
+async def fix_profile(common: CommonData, edge: EdgeEntry, migration: MigrationBase):
     device_settings = edge.profile_config.device_settings
     models = device_settings.data["models"]
 
     if edge.device_map.target_model in models:
         # don't change the model - it may be in use by other edges
+        migration.log.append(
+            "Target model already in profile, not modifying. This may cause failure during edge configuration."
+        )
         return
 
-    cfg = get_default_model_config(edge, edge.device_map.target_model)
+    default_model_cfg = get_default_model_config(edge, edge.device_map.target_model)
 
     networks = device_settings.data["lan"]["networks"]
     vlan_id = next(iter(networks), {}).get("vlanId", None)
 
-    sw_intfs = cfg["lan"]["interfaces"]
+    sw_intfs = default_model_cfg["lan"]["interfaces"]
 
     if vlan_id is not None:
         for intf in sw_intfs:
             intf["vlanIds"] = [vlan_id]
     else:
-        logging.info(
+        migration.log.append(
             "No switched VLAN found in profile, converting default switched interfaces to routed so that validation passes."
         )
-        cfg["lan"]["interfaces"] = []
+        default_model_cfg["lan"]["interfaces"] = []
         new_routed_intfs = [
-            get_default_routed_interface(
-                intf["name"], edge.device_map.target_model
-            )
+            get_default_routed_interface(intf["name"], edge.device_map.target_model)
             for intf in sw_intfs
         ]
-        new_routed_intfs.extend(cfg["routedInterfaces"])
-        cfg["routedInterfaces"] = new_routed_intfs
+        new_routed_intfs.extend(default_model_cfg["routedInterfaces"])
+        default_model_cfg["routedInterfaces"] = new_routed_intfs
 
-    models[edge.device_map.target_model] = cfg
+    models[edge.device_map.target_model] = default_model_cfg
 
     source_cfg = device_settings.data["models"][edge.device_map.source_model]
 
     for source_intf, dest_intf in edge.device_map.interface_map.items():
-        fix_profile_model_intf(source_cfg, source_intf, cfg, dest_intf)
+        fix_profile_model_intf(source_cfg, source_intf, default_model_cfg, dest_intf)
 
-    cfg["routedInterfaces"] = sorted(cfg["routedInterfaces"], key=lambda x: x["name"])
-    cfg["lan"]["interfaces"] = sorted(cfg["lan"]["interfaces"], key=lambda x: x["name"])
+    default_model_cfg["routedInterfaces"] = sorted(
+        default_model_cfg["routedInterfaces"], key=lambda x: x["name"]
+    )
+    default_model_cfg["lan"]["interfaces"] = sorted(
+        default_model_cfg["lan"]["interfaces"], key=lambda x: x["name"]
+    )
 
-    await update_configuration_module(common, device_settings.id, device_settings.data, None)
+    await update_configuration_module(
+        common, device_settings.id, device_settings.data, None
+    )
 
 
-async def create_target_edge(common: CommonData, edge: EdgeEntry) -> int:
+async def create_target_edge(
+    common: CommonData, edge: EdgeEntry, migration: MigrationBase
+) -> int:
     license_id = edge.source_edge_data["licenses"][0]["id"]
     contact_email = edge.source_edge_data["site"]["contactEmail"]
     contact_name = edge.source_edge_data["site"]["contactName"]
@@ -610,7 +630,9 @@ async def create_target_edge(common: CommonData, edge: EdgeEntry) -> int:
     return rv["id"]
 
 
-async def update_edge_firewall(common: CommonData, edge: EdgeEntry):
+async def update_edge_firewall(
+    common: CommonData, edge: EdgeEntry, migration: MigrationBase
+):
     if edge.source_edge_config.firewall is None:
         return
 
@@ -639,7 +661,44 @@ async def update_edge_firewall(common: CommonData, edge: EdgeEntry):
     await update_configuration_module(common, target_fw.id, new_fw.data)
 
 
-async def update_edge_qos(common: CommonData, edge: EdgeEntry):
+def get_icmp_probe_id(source_ds, target_ds, segment_id, source_probe_logical_id):
+    source_seg = next(
+        iter([s for s in source_ds["segments"] if s["segmentId"] == segment_id]),
+        {},
+    )
+    source_probe = next(
+        iter(
+            [
+                probe
+                for probe in source_seg.get("routes", {}).get("icmpProbes", [])
+                if probe["logicalId"] == source_probe_logical_id
+            ]
+        ),
+        None,
+    )
+    probe_name = source_probe["name"] if source_probe is not None else None
+
+    # get probe from target device settings
+    target_seg = next(
+        iter([s for s in target_ds["segments"] if s["segmentId"] == segment_id]),
+        {},
+    )
+    target_probe = next(
+        iter(
+            [
+                probe
+                for probe in target_seg.get("routes", {}).get("icmpProbes", [])
+                if probe["name"] == probe_name
+            ]
+        ),
+        None,
+    )
+    return target_probe["logicalId"] if target_probe is not None else None
+
+
+async def update_edge_qos(
+    common: CommonData, edge: EdgeEntry, migration: MigrationBase
+):
     # QOS module is never created during edge provision
     source_qos = deepcopy(edge.source_edge_config.qos)
     if source_qos is None:
@@ -659,10 +718,8 @@ async def update_edge_qos(common: CommonData, edge: EdgeEntry):
             match = rule["match"]
             s_intf = match.get("sInterface", None)
             d_intf = match.get("dInterface", None)
-            if s_intf in edge.device_map.interface_map:
-                match["sInterface"] = edge.device_map.interface_map[s_intf]
-            if d_intf in edge.device_map.interface_map:
-                match["dInterface"] = edge.device_map.interface_map[d_intf]
+            match["sInterface"] = edge.device_map.interface_map.get(s_intf, s_intf)
+            match["dInterface"] = edge.device_map.interface_map.get(d_intf, d_intf)
 
             # translate action clause
             action = rule["action"]
@@ -679,73 +736,19 @@ async def update_edge_qos(common: CommonData, edge: EdgeEntry):
                 fp = action.get(fp_name, None)
                 intf = fp.get("interface", None)
                 if intf is not None and intf != "auto":
-                    if intf in edge.device_map.interface_map:
-                        fp["interface"] = edge.device_map.interface_map[intf]
+                    fp["interface"] = edge.device_map.interface_map.get(intf, intf)
 
                 icmp_logical_id = fp.get("icmpLogicalId", None)
                 if icmp_logical_id is not None:
-                    # get probe name from source device settings
-                    source_seg = next(
-                        iter(
-                            [
-                                s
-                                for s in source_ds_data["segments"]
-                                if s["segmentId"] == segment_id
-                            ]
-                        ),
-                        {},
+                    fp["icmpLogicalId"] = get_icmp_probe_id(
+                        source_ds_data, target_ds_data, segment_id, icmp_logical_id
                     )
-                    source_probe = next(
-                        iter(
-                            [
-                                probe
-                                for probe in source_seg.get("routes", {}).get(
-                                    "icmpProbes", []
-                                )
-                                if probe["logicalId"] == icmp_logical_id
-                            ]
-                        ),
-                        None,
-                    )
-                    probe_name = (
-                        source_probe["name"] if source_probe is not None else None
-                    )
-
-                    # get probe from target device settings
-                    target_seg = next(
-                        iter(
-                            [
-                                s
-                                for s in target_ds_data["segments"]
-                                if s["segmentId"] == segment_id
-                            ]
-                        ),
-                        {},
-                    )
-                    target_probe = next(
-                        iter(
-                            [
-                                probe
-                                for probe in target_seg.get("routes", {}).get(
-                                    "icmpProbes", []
-                                )
-                                if probe["name"] == probe_name
-                            ]
-                        ),
-                        None,
-                    )
-                    probe_logical_id = (
-                        target_probe["logicalId"] if target_probe is not None else None
-                    )
-
-                    # update with target probe logical ID
-                    fp["icmpLogicalId"] = probe_logical_id
 
                 link_cos_logical_id = fp.get("linkCosLogicalId", None)
                 if link_cos_logical_id is not None:
                     if not logged_cos:
-                        logging.warning(
-                            "business policy link COS actions are not implemented"
+                        migration.log.append(
+                            f"{edge.name} biz pol: removed link COS for {seg["name"]} - {rule["name"]}"
                         )
                         logged_cos = True
                     fp["linkCosLogicalId"] = None
@@ -753,8 +756,8 @@ async def update_edge_qos(common: CommonData, edge: EdgeEntry):
                 wan_link_name = fp.get("wanLinkName", None)
                 if wan_link_name is not None and wan_link_name != "":
                     if not logged_wanlink:
-                        logging.warning(
-                            "business policy WAN link steering actions are not implemented. Check policy names to resolve steering once WAN links are created."
+                        migration.log.append(
+                            f"{edge.name} biz pol: removed WAN link steering for {seg["name"]} - {rule["name"]}"
                         )
                         rule["name"] = (
                             f"{rule["name"]} - steer {fp["linkPolicy"]} {wan_link_name}"
@@ -768,21 +771,11 @@ async def update_edge_qos(common: CommonData, edge: EdgeEntry):
                     link_internal_logical_id is not None
                     and link_internal_logical_id != "auto"
                 ):
-                    if not logged_wanlink:
-                        logging.warning(
-                            "business policy WAN link steering actions are not implemented"
-                        )
-                        logged_wanlink = True
                     fp["linkInternalLogicalId"] = "auto"
                     fp["linkPolicy"] = "auto"
 
                 wan_link = fp.get("wanlink", None)
                 if wan_link is not None and wan_link != "auto":
-                    if not logged_wanlink:
-                        logging.warning(
-                            "business policy WAN link steering actions are not implemented"
-                        )
-                        logged_wanlink = True
                     fp["wanlink"] = "auto"
                     fp["linkPolicy"] = "auto"
 
@@ -792,7 +785,7 @@ async def update_edge_qos(common: CommonData, edge: EdgeEntry):
     edge.target_edge_config.qos = ConfigModule(new_qos_module)
 
 
-def clean_ref(name: str, ref: dict, config_id: int, module_id: int) -> dict:
+def clean_ref(ref: dict, config_id: int, module_id: int) -> dict:
     keep_keys = [
         "enterpriseObjectId",
         "segmentObjectId",
@@ -806,7 +799,9 @@ def clean_ref(name: str, ref: dict, config_id: int, module_id: int) -> dict:
     return new_ref
 
 
-async def update_edge_device_settings(common: CommonData, edge: EdgeEntry):
+async def update_edge_device_settings(
+    common: CommonData, edge: EdgeEntry, migration: MigrationBase
+):
     target_ds = edge.target_edge_config.device_settings
 
     new_ds = deepcopy(edge.source_edge_config.device_settings)
@@ -844,16 +839,14 @@ async def update_edge_device_settings(common: CommonData, edge: EdgeEntry):
     target_model_intfs.extend(
         [
             intf["name"]
-            for intf in model_data[edge.device_map.target_model]["lan"][
-                "interfaces"
-            ]
+            for intf in model_data[edge.device_map.target_model]["lan"]["interfaces"]
         ]
     )
 
     for model_intf in target_model_intfs:
         if model_intf not in edge.device_map.interface_map.values():
-            target_routed = find_routed(target_ds.data, model_intf)
-            target_switched = find_switched(target_ds.data, model_intf)
+            target_routed = find_routed_index(target_ds.data, model_intf)
+            target_switched = find_switched_index(target_ds.data, model_intf)
 
             if target_routed is not None:
                 new_ds.data["routedInterfaces"].append(
@@ -864,7 +857,7 @@ async def update_edge_device_settings(common: CommonData, edge: EdgeEntry):
                     target_ds.data["lan"]["interfaces"][target_switched]
                 )
             else:
-                logging.error(
+                migration.log.append(
                     f"Unknown interface {model_intf} in target model {edge.device_map.target_model}"
                 )
 
@@ -977,13 +970,13 @@ async def update_edge_device_settings(common: CommonData, edge: EdgeEntry):
         if (edge_direct := seg.get("edgeDirect", None)) is not None:
             for provider in edge_direct.get("providers", []):
                 if len(provider.get("sites", [])) > 0:
-                    logging.warning(
+                    migration.log.append(
                         "NSD via edge site provisioning must be done after WAN links are created"
                     )
                     provider["sites"] = []
             if (provider := edge_direct.get("provider", None)) is not None:
                 if len(provider.get("sites", [])) > 0:
-                    logging.warning(
+                    migration.log.append(
                         "NSD via edge site provisioning must be done after WAN links are created"
                     )
                 if "sites" in provider:
@@ -1016,18 +1009,15 @@ async def update_edge_device_settings(common: CommonData, edge: EdgeEntry):
                 edge.device_map.interface_map.get(s_intf, s_intf), sep, sub_intf
             )
 
-    # TODO: write common function for these sub-interface renames
-
     new_ds_refs_clean = {}
     for name, ref in new_ds.refs.items():
         if isinstance(ref, list):
             new_ds_refs_clean[name] = [
-                clean_ref(name, r, edge.target_edge_config.id, target_ds.id)
-                for r in ref
+                clean_ref(r, edge.target_edge_config.id, target_ds.id) for r in ref
             ]
         else:
             new_ds_refs_clean[name] = clean_ref(
-                name, ref, edge.target_edge_config.id, target_ds.id
+                ref, edge.target_edge_config.id, target_ds.id
             )
 
     await update_configuration_module(
@@ -1036,78 +1026,141 @@ async def update_edge_device_settings(common: CommonData, edge: EdgeEntry):
 
 
 async def update_target_config(
-    common: CommonData, edge: EdgeEntry, target_edge_id: int
+    common: CommonData, edge: EdgeEntry, target_edge_id: int, migration: MigrationBase
 ):
     config_stack = await get_edge_configuration_stack(common, target_edge_id)
     edge.target_edge_config = ConfigProfile(config_stack[0])
 
-    await update_edge_device_settings(common, edge)
-    await update_edge_qos(common, edge)
-    await update_edge_firewall(common, edge)
+    await update_edge_device_settings(common, edge, migration)
+    await update_edge_qos(common, edge, migration)
+    await update_edge_firewall(common, edge, migration)
 
 
-async def main(session: aiohttp.ClientSession):
-    data = CommonData(
-        read_env("VCO"), read_env("VCO_TOKEN"), int(read_env("ENT_ID")), session
-    )
+async def do_migrations(data: CommonData, config: Config, migration: MigrationBase):
+    try:
+        async for edge in get_enterprise_edge_list_full_dict(
+            data, ["licenses", "site"], None
+        ):
+            name = edge["name"]
+            if name in config.edges_dict:
+                config.edges_dict[name].source_edge_data = edge
 
-    with open("model-data.json", "r") as f:
+        for edge in config.edges_dict.values():
+            if edge.source_edge_data is None:
+                migration.log.append(f"Edge [ {edge.name} ] not found in VCO")
+                continue
+
+            try:
+                config_stack = await get_edge_configuration_stack(
+                    data, edge.source_edge_data["id"]
+                )
+                edge.source_edge_config = ConfigProfile(config_stack[0])
+                edge.profile_config = ConfigProfile(config_stack[1])
+
+                await fix_profile(data, edge, migration)
+
+                target_edge_id = await create_target_edge(data, edge, migration)
+
+                await update_target_config(data, edge, target_edge_id, migration)
+            except Exception:
+                migration.log.append(f"Error processing edge {edge.name}")
+
+        migration.status = MigrationStatus.done
+    finally:
+        await data.session.close()
+
+
+migrations: dict[uuid.UUID, Migration] = {}
+tasks: dict[uuid.UUID, asyncio.Task] = {}
+scheduler: BaseScheduler = BackgroundScheduler()
+
+
+def find_migration_failures():
+    for migration in migrations.values():
+        if migration.task.done():
+            if migration.task.cancelled():
+                migration.log.append("Migration was cancelled.")
+                migration.status = MigrationStatus.cancelled
+            elif (e := migration.task.exception()) is not None:
+                migration.log.append(
+                    "Exception encountered during the migration. Please report this to the developer. {}".format(
+                        str(e)
+                    )
+                )
+                migration.status = MigrationStatus.error
+
+
+def cleanup_migrations():
+    old_migrations = []
+    for migration in migrations.values():
+        time_delta = datetime.datetime.now() - migration.start
+        
+        if time_delta > migration_timeout:
+            task = tasks.get(migration.id, None)
+            if task is not None:
+                if not task.done():
+                    migration.log.append("Cancelling migration due to timeout.")
+                    task.cancel()
+
+                del tasks[migration.id]
+
+        if time_delta > migration_cleanup_timeout:
+            old_migrations.append(migration.id)
+
+    for id in old_migrations:
+        del migrations[id]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    model_data_path = pathlib.Path(__file__).parent / "model-data.json"
+    with open(model_data_path, "r") as f:
         load_model_data(json.load(f))
 
-    with open("config-migration.yaml", "r") as f:
-        config = load_config(yaml.safe_load(f))
+    find_migration_failures_job = scheduler.add_job(trigger="cron", second="*/5", func=find_migration_failures)
+    cleanup_migrations_job = scheduler.add_job(trigger="cron", second="*/30", func=cleanup_migrations)
+    scheduler.start()
 
-    if not validate_config(config):
-        logging.error("Config validation failed")
-        return
+    yield
 
-    for dm in config.device_maps:
-        print("device map {}".format(dm.name))
-        print("  source model: {}".format(dm.source_model))
-        print("  target model: {}".format(dm.target_model))
-        print("  interface map:")
-        for k, v in dm.interface_map.items():
-            print("    {} -> {}".format(k, v))
-
-    # 0. get edge list and ensure all edges exist
-    async for edge in get_enterprise_edge_list_full_dict(
-        data, ["licenses", "site"], None
-    ):
-        name = edge["name"]
-        if name in config.edge_entries_dict:
-            config.edge_entries_dict[name].source_edge_data = edge
-
-    for edge in config.edge_entries_dict.values():
-        if edge.source_edge_data is None:
-            logging.error(f"Edge [ {edge.name} ] not found in VCO")
-            return
-
-    for edge in config.edge_entries_dict.values():
-        config_stack = await get_edge_configuration_stack(
-            data, edge.source_edge_data["id"]
-        )
-        edge.source_edge_config = ConfigProfile(config_stack[0])
-        edge.profile_config = ConfigProfile(config_stack[1])
-
-        await fix_profile(data, edge)
-
-        target_edge_id = await create_target_edge(data, edge)
-
-        await update_target_config(data, edge, target_edge_id)
+    find_migration_failures_job.remove()
+    cleanup_migrations_job.remove()
+    scheduler.shutdown()
 
 
-async def main_wrapper():
-    async with aiohttp.ClientSession() as session:
-        await main(session)
+app = FastAPI(lifespan=lifespan)
 
 
-if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
+@app.post("/migrate/", response_model=Migration)
+def migrate(migration_create: MigrationCreate) -> Migration:
+    migration_config = migration_create.config
+
+    data = CommonData(
+        migration_config.vco_fqdn,
+        migration_config.vco_token,
+        migration_config.enterprise_id,
+        aiohttp.ClientSession(),
     )
 
-    logging.info("Starting config migration")
+    loaded_config = load_config(migration_config.model_dump())
 
-    dotenv.load_dotenv("env/.env", verbose=True, override=True)
-    asyncio.run(main_wrapper())
+    migration = Migration.model_construct(
+        config=migration_config,
+        id=uuid.uuid4(),
+        start=datetime.datetime.now(),
+        status=MigrationStatus.waiting,
+    )
+
+    task = asyncio.tasks.create_task(
+        do_migrations(data, loaded_config, migration)
+    )
+
+    tasks[migration.id] = task
+    migrations[migration.id] = migration
+
+    return migration
+
+
+@app.get("/status/{id}", response_model=Migration)
+def status(id: uuid.UUID) -> Migration | None:
+    return migrations.get(id, None)

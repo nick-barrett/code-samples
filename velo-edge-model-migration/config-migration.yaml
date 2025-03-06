@@ -1,0 +1,12 @@
+device_maps:
+  - name: "default"
+    source_model: "edge6X0"
+    target_model: "edge7X0"
+    interface_map:
+      GE1: GE1
+      GE2: GE2
+      GE3: GE4
+      GE4: GE5
+edges:
+  - name: "Home-620"
+    device_map: "default"

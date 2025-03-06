@@ -1125,6 +1125,13 @@ async def get_edge_flow_visibility_metrics_raw(
 async def get_edge_flow_visibility_metrics_fast(
     c: CommonData, edge_id: int, start_time: datetime, end_time: datetime
 ) -> AsyncGenerator[tuple[tuple, list[tuple]], None]:
+    """
+    Work-in-progress. This is a faster version of get_edge_flow_visibility_metrics that uses
+    ijson to parse the JSON incrementally. This is much faster for large flow data responses.
+    Each yield is a tuple of the field names and a list of flow records as tuples. This is an
+    efficient format to inject into a DataFrame.
+    """
+
     next_page = None
     more = True
 
@@ -1137,6 +1144,8 @@ async def get_edge_flow_visibility_metrics_fast(
     have_learned_fields = False
     flow_fields: tuple | None = None
     flow_field_indices: dict[str, int] = {}
+
+    # we should transpose the flow record data into a tuple of lists before returning it
 
     while more:
         more = False
@@ -1153,7 +1162,7 @@ async def get_edge_flow_visibility_metrics_fast(
             flow_record_values = []
             need_sort = False
 
-            flow_record_batch = []
+            flow_record_batch = None
 
             async for prefix, event, value in ijson.parse(client_response.content):
                 if in_flow_record:
@@ -1198,7 +1207,15 @@ async def get_edge_flow_visibility_metrics_fast(
                             }
                             have_learned_fields = True
 
-                        flow_record_batch.append(tuple(flow_record_values))
+                        if flow_record_batch is None:
+                            # populate the flow record batch with singleton lists for each column
+                            flow_record_batch = [[v] for v in flow_record_values]
+                        else:
+                            # transpose the values into the batch columns
+                            # TBD if enumerate() is slow. Manual iteration might be faster.
+                            # It would effectively inline the enumerate() function.
+                            for i, v in enumerate(flow_record_values):
+                                flow_record_batch[i].append(v)
 
                         flow_record_keys = []
                         flow_record_values = []

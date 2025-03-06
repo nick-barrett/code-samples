@@ -17,8 +17,8 @@ def make_chunks[
         yield chunk
 
 
-def extract_module(module_stack: list[dict], module_name: str) -> Optional[dict]:
-    return next((m for m in module_stack if m["name"] == module_name), None)
+def extract_module(module_list: list[dict], module_name: str) -> Optional[dict]:
+    return next((m for m in module_list if m["name"] == module_name), None)
 
 
 def dict_query(d: dict[str, Any], query: str) -> Optional[Any]:

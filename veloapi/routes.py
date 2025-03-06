@@ -5,37 +5,11 @@ import datetime
 import json
 import logging
 from typing import Any, cast
-import dataclasses_json
 import websockets
 
 from veloapi.api import get_edge_sdwan_peers
-from veloapi.models import CommonData, EnterpriseEdgeListEdge
+from veloapi.models import CommonData, EdgeRouteEntry, EnterpriseEdgeListEdge, GatewayRouteEntry
 
-@dataclasses_json.dataclass_json(letter_case=dataclasses_json.LetterCase.CAMEL)
-@dataclasses.dataclass
-class GatewayRouteEntry:
-    network_addr: str
-    network_mask: str
-    type: str
-    peer_name: str
-    reachable: bool
-    metric: int
-    preference: int
-    flags: str
-    age: int
-    c_tag: int
-    s_tag: int
-    handoff: str
-    mode: str
-    lost_reason: str
-
-
-@dataclasses_json.dataclass_json
-@dataclasses.dataclass
-class EdgeRouteEntry:
-    route_type: str
-    route_address: str
-    route_netmask: str
 type EdgeId = str
 type EdgeLogicalId = str
 type GwLogicalId = str

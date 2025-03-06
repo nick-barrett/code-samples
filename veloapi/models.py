@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import dataclasses
 from dataclasses_json import LetterCase
 import dataclasses_json
 from typing import NamedTuple, Optional
@@ -270,7 +271,7 @@ class EnterpriseEdgeListEdge:
     is_hub: bool | None
     ha: ListEdgeHa | None = None
     # configuration: dict | None
-    # cloud_services: list[EnterpriseEdgeListCloudService] | None
+    cloud_services: list[EnterpriseEdgeListCloudService] | None
 
 
 @dataclass
@@ -384,21 +385,55 @@ class GetEnterpriseResult:
     prefix: str | None
     logical_id: str
     account_number: str
-    """
-    description": null,
-    contactName": "Nick",
-    contactPhone": null,
-    contactMobile": "+1",
-    contactEmail": "nick.barrett@broadcom.com",
-    streetAddress": null,
-    streetAddress2": null,
-    city": null,
-    state": null,
-    postalCode": null,
-    country": null,
-    lat": 37.402866,
-    lon": -122.117332,
-    timezone": "America/Los_Angeles",
-    locale": "en-US",
-    bastionState": "UNCONFIGURED",
-    """
+
+@dataclass
+class ConfigModule:
+    raw: dict
+    id: int = dataclasses.field(init=False)
+    name: str = dataclasses.field(init=False)
+    data: dict[str, list | dict] = dataclasses.field(init=False)
+    refs: dict[str, list | dict] = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        self.id = self.raw["id"]
+        self.name = self.raw["name"]
+        self.data = self.raw["data"]
+        self.refs = self.raw["refs"] if "refs" in self.raw else {}
+
+
+@dataclass
+class ConfigProfile:
+    raw: dict
+    id: int = dataclasses.field(init=False)
+    name: str = dataclasses.field(init=False)
+    device_settings: ConfigModule = dataclasses.field(init=False)
+    wan: ConfigModule | None = dataclasses.field(init=False)
+    qos: ConfigModule | None = dataclasses.field(init=False)
+    firewall: ConfigModule | None = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        self.id = self.raw["id"]
+        self.name = self.raw["name"]
+
+        device_settings = extract_module(self.raw["modules"], "deviceSettings")
+        if device_settings is None:
+            raise ValueError("deviceSettings is None")
+        self.device_settings = ConfigModule(device_settings)
+
+        wan = extract_module(self.raw["modules"], "WAN")
+        if wan is not None:
+            self.wan = ConfigModule(wan)
+        else:
+            self.wan = None
+
+        qos = extract_module(self.raw["modules"], "QOS")
+        if qos is not None:
+            self.qos = ConfigModule(qos)
+        else:
+            self.qos = None
+
+        firewall = extract_module(self.raw["modules"], "firewall")
+        if firewall is not None:
+            self.firewall = ConfigModule(firewall)
+        else:
+            self.firewall = None

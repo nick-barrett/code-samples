@@ -4,7 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["Nick Barrett <nick.barrett@broadcom.com>"]
 readme = "README.md"
-packages = [{include = "veloapi"}]
+packages = [
+    { include = "veloapi" }
+]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -20,6 +23,15 @@ ijson = "^3.3.0"
 duckdb = "^1.2.0"
 polars = "^1.22.0"
 pyarrow = "^19.0.0"
+fastapi = {extras = ["standard"], version = "^0.115.8"}
+apscheduler = "^3.11.0"
+dataclass-csv = "^1.4.0"
+geopy = "^2.4.1"
+jsonpatch = "^1.33"
+intervaltree = "^3.1.0"
+matplotlib = "^3.10.1"
+pandas = "^2.2.3"
+pysnmp = "^7.1.16"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"
