@@ -1,11 +1,12 @@
 [tool.poetry]
-name = "veloapi-stuff"
+name = "code-samples"
 version = "0.1.0"
 description = ""
-authors = ["Nick Barrett <nick.barrett@broadcom.com>"]
-readme = "README.md"
+authors = ["Nick Barrett"]
 packages = [
-    { include = "veloapi" }
+    { include = "veloapi" },
+    { include = "netperfproto" },
+    { include = "netperfbackend" }
 ]
 package-mode = false
 
@@ -32,6 +33,9 @@ intervaltree = "^3.1.0"
 matplotlib = "^3.10.1"
 pandas = "^2.2.3"
 pysnmp = "^7.1.16"
+loguru = "^0.7.3"
+uvicorn = "^0.34.0"
+sqlmodel = "^0.0.24"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"
