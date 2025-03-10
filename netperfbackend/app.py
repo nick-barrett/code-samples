@@ -235,13 +235,8 @@ class WsManager:
         pass
 
     async def tick(self) -> AsyncGenerator[None, None]:
-        last_tick = datetime.datetime.min
-
         while True:
-            current_time = datetime.datetime.now()
-
-            last_tick = current_time
-
+            # TBD what this should do
             yield
 
 

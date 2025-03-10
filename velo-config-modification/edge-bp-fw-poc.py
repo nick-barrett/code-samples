@@ -1,10 +1,9 @@
 import asyncio
-from dataclasses import dataclass, field
 import aiohttp
 
 import dotenv
 
-from veloapi.util import read_env, extract_module
+from veloapi.util import read_env
 from veloapi.models import CommonData, ConfigModule, ConfigProfile
 from veloapi.api import (
     get_edge_configuration_stack,

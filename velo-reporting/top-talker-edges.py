@@ -145,7 +145,7 @@ async def fetch_flows_main(session: ClientSession, con: duckdb.DuckDBPyConnectio
             data["totalPackets"].append(flow.total_packets)
 
         flow_metrics_df = pd.DataFrame.from_dict(data)
-        flow_metrics_df_sorted = flow_metrics_df.sort_values(by="startTime")
+        flow_metrics_df_sorted = flow_metrics_df.sort_values(by="startTime")  # noqa: F841
 
         con.sql("INSERT INTO flow_metrics SELECT * FROM flow_metrics_df_sorted")
 
@@ -193,7 +193,7 @@ async def fetch_links_main(session: ClientSession, con: duckdb.DuckDBPyConnectio
         data["packetsTx"].append(link.get("packetsTx", 0))
         data["packetsTotal"].append(link.get("totalPackets", 0))
 
-    link_metrics_df = pd.DataFrame.from_dict(data)
+    link_metrics_df = pd.DataFrame.from_dict(data)  # noqa: F841
 
     con.sql("CREATE TABLE link_metrics AS SELECT * FROM link_metrics_df")
 

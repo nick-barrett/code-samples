@@ -1,6 +1,4 @@
 import asyncio
-import os
-from typing import Optional
 
 import aiohttp
 import dotenv

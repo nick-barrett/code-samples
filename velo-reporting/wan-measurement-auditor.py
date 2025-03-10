@@ -1,13 +1,14 @@
+"""
+This script searches for "slow-start" measured WAN links which should be configured to fast-start.
+"""
+
 import asyncio
 from dataclasses import dataclass
 import datetime
 from typing import cast
 import aiohttp
 import dotenv
-import json
-import os
 import pandas as pd
-from requests import Session, session
 import time
 
 from veloapi.api import get_aggregate_edge_link_metrics, get_edge_configuration_stack, update_configuration_module
@@ -33,15 +34,15 @@ async def get_link_data(shared: CommonData) -> list[LinkData]:
 
     return [
         LinkData(
-            l["link"]["edgeId"],
-            l["link"]["edgeName"],
-            l["link"]["internalId"],
-            l["link"]["displayName"],
-            l["link"]["isp"],
-            l["bpsOfBestPathTx"] / 1000000,
-            l["bpsOfBestPathRx"] / 1000000,
+            link["link"]["edgeId"],
+            link["link"]["edgeName"],
+            link["link"]["internalId"],
+            link["link"]["displayName"],
+            link["link"]["isp"],
+            link["bpsOfBestPathTx"] / 1000000,
+            link["bpsOfBestPathRx"] / 1000000,
         )
-        for l in resp
+        for link in resp
     ]
 
 

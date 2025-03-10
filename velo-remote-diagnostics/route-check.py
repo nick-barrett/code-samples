@@ -54,7 +54,7 @@ async def get_all_hubs(c: CommonData) -> list[EnterpriseEdgeListEdge]:
                         for e in ent_data.get("hubs", [])
                     ]
                 }
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         cache = {}
 
     cache_hubs = cache.get(ent_id_str, {}).get("hubs", [])
@@ -63,9 +63,9 @@ async def get_all_hubs(c: CommonData) -> list[EnterpriseEdgeListEdge]:
         return cache_hubs
     else:
         hubs = []
-        async for l in get_enterprise_edge_list_full(c, ["ha"], None):
-            if l.is_hub:
-                hubs.append(l)
+        async for edge in get_enterprise_edge_list_full(c, ["ha"], None):
+            if edge.is_hub:
+                hubs.append(edge)
 
         cache.setdefault(ent_id_str, {})["hubs"] = hubs
 

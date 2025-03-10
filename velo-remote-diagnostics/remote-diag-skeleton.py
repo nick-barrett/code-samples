@@ -1,5 +1,7 @@
-from dataclasses import dataclass
-import os
+"""
+Minimal example of running remote diagnostic using the Velo API.
+"""
+
 import json
 import asyncio
 from typing import Any, Dict
@@ -7,51 +9,38 @@ import aiohttp
 import websockets
 import dotenv
 
+from veloapi.models import CommonData
+from veloapi.util import read_env
 
-def read_env(name: str) -> str:
-    value = os.getenv(name)
-    assert value is not None, f"missing environment var {name}"
-    return value
-
-
-@dataclass
-class CommonData:
-    vco: str
-    token: str
-    enterprise_id: int
-    session: aiohttp.ClientSession
-
-    def __post_init__(self):
-        self.validate()
-
-        self.session.headers.update({"Authorization": f"Token {self.token}"})
-
-    def validate(self):
-        if any(
-            missing_inputs := [
-                v is None for v in [self.vco, self.token, self.enterprise_id]
-            ]
-        ):
-            raise ValueError(f"missing input data: {missing_inputs}")
-
-
-async def do_portal(c: CommonData, method: str, params: dict):
-    async with c.session.post(
-        f"https://{c.vco}/portal/",
-        json={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": method,
-            "params": params,
+async def run_gw_route_dump(c: CommonData, enterprise_logical_id: str, gw_logical_id: str, segment_id: int) -> Dict[str, Any]:
+    async with websockets.connect(
+        f"wss://{c.vco}/ws/",
+        extra_headers={
+            "Authorization": f"Token {c.token}",
         },
-    ) as req:
-        resp = await req.json()
-        if "result" not in resp:
-            raise ValueError(json.dumps(resp, indent=2))
-        return resp["result"]
+    ) as ws:
+        # wait for noop with token
+        token_msg = json.loads(await ws.recv())
+        token: str = token_msg["token"]
+
+        await ws.send(
+            json.dumps(
+                {
+                    "action": "getGwRouteTable",
+                    "data": {
+                        "segmentId": segment_id,
+                        "logicalId": gw_logical_id,
+                        "enterpriseLogicalId": enterprise_logical_id,
+                    },
+                    "token": token,
+                }
+            )
+        )
+
+        return json.loads(await asyncio.wait_for(ws.recv(), 60))
 
 
-async def run_remote_diagnostic(c: CommonData, edge_logical_id: str) -> Dict[str, Any]:
+async def run_edge_remote_diagnostic(c: CommonData, edge_logical_id: str) -> Dict[str, Any]:
     async with websockets.connect(
         f"wss://{c.vco}/ws/",
         extra_headers={
@@ -84,7 +73,7 @@ async def main(session: aiohttp.ClientSession):
     )
 
     edge_logical_id = "abcd-1234-efgh-5678"
-    resp = await run_remote_diagnostic(common, edge_logical_id)
+    resp = await run_edge_remote_diagnostic(common, edge_logical_id)
 
     print(json.dumps(resp, indent=2))
 

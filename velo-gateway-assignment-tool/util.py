@@ -22,8 +22,8 @@ def make_chunks(a: Sequence[T], chunk_size: int) -> Generator[Sequence[T], None,
         yield chunk
 
 
-def flatten(l: list[list[T]]) -> list[T]:
-    return [item for sublist in l for item in sublist]
+def flatten(list_of_lists: list[list[T]]) -> list[T]:
+    return [item for sublist in list_of_lists for item in sublist]
 
 
 def edge_pop_distance(edge: EdgeLocation, pop: PopLocation) -> float:

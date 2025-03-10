@@ -37,15 +37,17 @@ class SessionManager:
 
             stop_recv = asyncio.create_task(stop_event.wait())
 
-            conn_est_factory = lambda: asyncio.create_task(
-                control.wait_for_conn_established()
-            )
+            def conn_est_factory():
+                return asyncio.create_task(control.wait_for_conn_established())
+
+            def msg_recv_factory():
+                return asyncio.create_task(control.recv_message())
+
+            def register_timer_factory():
+                return asyncio.create_task(asyncio.sleep(5))
+
             conn_est = conn_est_factory()
-
-            msg_recv_factory = lambda: asyncio.create_task(control.recv_message())
             msg_recv = msg_recv_factory()
-
-            register_timer_factory = lambda: asyncio.create_task(asyncio.sleep(5))
             register_timer = register_timer_factory()
 
             fut_set = set((stop_recv, conn_est, msg_recv, register_timer))
@@ -92,14 +94,19 @@ class SessionManager:
                             ):
                                 match target_service.scheme:
                                     case "tcp":
-                                        cb = lambda pt, control=control, session_id=session_id: control.send_message_nowait(
-                                            BackendSessionMetric(
-                                                session_id=session_id,
-                                                data=SessionMetricTcp(pt=pt),
+
+                                        def metric_cb(
+                                            pt, control=control, session_id=session_id
+                                        ):
+                                            control.send_message_nowait(
+                                                BackendSessionMetric(
+                                                    session_id=session_id,
+                                                    data=SessionMetricTcp(pt=pt),
+                                                )
                                             )
-                                        )
+
                                         tcp_task = tcp_client(
-                                            cb,
+                                            metric_cb,
                                             target_service.host,
                                             target_service.port,
                                             duration,
@@ -107,26 +114,39 @@ class SessionManager:
 
                                         sessions[session_id] = tcp_task
 
-                                        session_ended_msg_cb = lambda t, control=control, session_id=session_id: control.send_message_nowait(
-                                            BackendSessionEnded(session_id=session_id)
-                                        )
-                                        remove_session_task_cb = lambda t, sessions=sessions, session_id=session_id: sessions.pop(
-                                            session_id, None
-                                        )
+                                        def session_ended_msg_cb(
+                                            t, control=control, session_id=session_id
+                                        ):
+                                            control.send_message_nowait(
+                                                BackendSessionEnded(
+                                                    session_id=session_id
+                                                )
+                                            )
+
+                                        def remove_session_task_cb(
+                                            t, sessions=sessions, session_id=session_id
+                                        ):
+                                            sessions.pop(session_id, None)
+
                                         tcp_task.add_done_callback(session_ended_msg_cb)
                                         tcp_task.add_done_callback(
                                             remove_session_task_cb
                                         )
 
                                     case "udp":
-                                        cb = lambda pt, control=control, session_id=session_id: control.send_message_nowait(
-                                            BackendSessionMetric(
-                                                session_id=session_id,
-                                                data=SessionMetricUdp(pt=pt),
+
+                                        def metric_cb(
+                                            pt, control=control, session_id=session_id
+                                        ):
+                                            control.send_message_nowait(
+                                                BackendSessionMetric(
+                                                    session_id=session_id,
+                                                    data=SessionMetricUdp(pt=pt),
+                                                )
                                             )
-                                        )
+
                                         udp_task = udp_client(
-                                            cb,
+                                            metric_cb,
                                             target_service.host,
                                             target_service.port,
                                             duration,
@@ -134,12 +154,20 @@ class SessionManager:
 
                                         sessions[session_id] = udp_task
 
-                                        session_ended_msg_cb = lambda t, control=control, session_id=session_id: control.send_message_nowait(
-                                            BackendSessionEnded(session_id=session_id)
-                                        )
-                                        remove_session_task_cb = lambda t, sessions=sessions, session_id=session_id: sessions.pop(
-                                            session_id, None
-                                        )
+                                        def session_ended_msg_cb(
+                                            t, control=control, session_id=session_id
+                                        ):
+                                            control.send_message_nowait(
+                                                BackendSessionEnded(
+                                                    session_id=session_id
+                                                )
+                                            )
+
+                                        def remove_session_task_cb(
+                                            t, sessions=sessions, session_id=session_id
+                                        ):
+                                            sessions.pop(session_id, None)
+
                                         udp_task.add_done_callback(session_ended_msg_cb)
                                         udp_task.add_done_callback(
                                             remove_session_task_cb

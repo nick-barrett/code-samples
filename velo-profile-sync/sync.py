@@ -95,7 +95,7 @@ async def clone_edge_hub_cluster_ref(
         dst_cfg.device_settings.id,
         src_ref["segmentObjectId"],
     )
-    if src_ref_roles["backHaulEdge"] == True:
+    if src_ref_roles["backHaulEdge"]:
         await enable_cluster_for_backhaul(
             shared,
             dst_cfg.id,
@@ -103,7 +103,7 @@ async def clone_edge_hub_cluster_ref(
             dst_cfg.device_settings.id,
             src_ref["segmentObjectId"],
         )
-    if src_ref_roles["edgeToEdgeBridge"] == True:
+    if src_ref_roles["edgeToEdgeBridge"]:
         await enable_cluster_for_edge_to_edge_bridge(
             shared,
             dst_cfg.id,
@@ -144,7 +144,7 @@ async def clone_edge_hub_edge_ref(
         dst_cfg.device_settings.id,
         src_ref["segmentObjectId"],
     )
-    if src_ref_roles["backHaulEdge"] == True:
+    if src_ref_roles["backHaulEdge"]:
         await enable_edge_for_backhaul(
             shared,
             dst_cfg.id,
@@ -152,7 +152,7 @@ async def clone_edge_hub_edge_ref(
             dst_cfg.device_settings.id,
             src_ref["segmentObjectId"],
         )
-    if src_ref_roles["edgeToEdgeBridge"] == True:
+    if src_ref_roles["edgeToEdgeBridge"]:
         await enable_edge_for_edge_to_edge_bridge(
             shared,
             dst_cfg.id,

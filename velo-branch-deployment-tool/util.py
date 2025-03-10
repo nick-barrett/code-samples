@@ -1,5 +1,5 @@
 from ipaddress import IPv4Address, IPv4Network, ip_address, ip_network
-from typing import Optional, cast
+from typing import cast
 import requests
 
 from models import LatLon

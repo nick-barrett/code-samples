@@ -194,7 +194,8 @@ def make_request(c: CommonData, start: datetime, end: datetime) -> Tuple[str, di
 
 async def main(c: CommonData):
     start = datetime.now() - timedelta(minutes=20)
-    timestamp = start + timedelta(minutes=5)
+    # this would be the timestamp of the record
+    timestamp = start + timedelta(minutes=5)  # noqa: F841
     end = start + timedelta(minutes=10)
 
     (url, body) = make_request(c, start, end)

@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 from apscheduler.schedulers.background import BaseScheduler, BackgroundScheduler
 
 from veloapi.models import CommonData, ConfigModule, ConfigProfile, EdgeProvisionParams
-from veloapi.util import extract_module
 from veloapi.api import (
     edge_provision,
     get_enterprise_edge_list_full_dict,

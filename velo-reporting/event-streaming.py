@@ -1,36 +1,26 @@
+"""
+Demonstrate continuously streaming events from the VCO into a Python app.
+This script needs to be updated to account for id -> logicalId change in VCO 6.2.
+"""
+
 import asyncio
 from dataclasses import dataclass
 from datetime import timedelta, datetime
-import json
-import os
 from typing import AsyncGenerator, cast
 import aiohttp
 import dotenv
+
+from veloapi.api import get_enterprise_events_raw
+from veloapi.models import CommonData
+from veloapi.util import read_env
 
 vco_fqdn = "vco.velocloud.net"
 vco_api_token = ""
 enterprise_id = 123
 
 
-def read_env(name: str) -> str:
-    value = os.getenv(name)
-    assert value is not None, f"missing environment var {name}"
-    return value
-
-
 @dataclass
-class CommonData:
-    vco: str
-    token: str
-    enterprise_id: int
-    session: aiohttp.ClientSession
-
-    def __post_init__(self):
-        self.session.headers.update({"Authorization": f"Token {self.token}"})
-
-
-@dataclass
-class EnterpriseEventV2:
+class EnterpriseEvent:
     id: int | None
     timestamp: datetime
     event: str
@@ -42,50 +32,9 @@ class EnterpriseEventV2:
     edge_name: str | None
 
 
-async def do_portal(c: CommonData, method: str, params: dict):
-    async with c.session.post(
-        f"https://{c.vco}/portal/",
-        json={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": method,
-            "params": params,
-        },
-    ) as req:
-        resp = await req.json()
-        if "result" not in resp:
-            raise ValueError(json.dumps(resp, indent=2))
-        return resp["result"]
-
-
-async def get_enterprise_events_raw(
-    c: CommonData, start_time: datetime, id: int | None, next_page: str | None = None
-) -> dict[str, dict | list]:
-    interval_object = {
-        "start": int(start_time.timestamp() * 1000),
-    }
-
-    id = id if id else 0
-
-    params_object = {
-        "enterpriseId": c.enterprise_id,
-        "filter": {"rules": [{"field": "id", "op": "greaterOrEquals", "values": [id]}]},
-        "interval": interval_object,
-    }
-
-    if next_page:
-        params_object["nextPageLink"] = next_page
-
-    return await do_portal(
-        c,
-        "event/getEnterpriseEvents",
-        params_object,
-    )
-
-
 async def get_enterprise_events_stream(
     c: CommonData, start_time: datetime, poll_interval: timedelta
-) -> AsyncGenerator[EnterpriseEventV2, None]:
+) -> AsyncGenerator[EnterpriseEvent, None]:
     next_id = 0
     interval_seconds = poll_interval.total_seconds()
 
@@ -111,7 +60,7 @@ async def get_enterprise_events_stream(
                     if event_time_epoch
                     else datetime.now()
                 )
-                yield EnterpriseEventV2(
+                yield EnterpriseEvent(
                     event_id,
                     event_time_datetime,
                     d.get("event", ""),

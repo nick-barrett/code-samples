@@ -1,29 +1,5 @@
 """
-
-Description: Process a CSV of edge profile swaps and apply them.
-Author: Nick Barrett <nbarrett@vmware.com>
-
-Requirements:
-- python 3.11 - not tested below this version
-
-External dependencies:
-- python-dotenv https://pypi.org/project/python-dotenv/
-- dataclass-csv https://pypi.org/project/dataclass-csv/
-
-Environment or .env variables:
-- VCO => FQDN of customer VCO
-- VCO_TOKEN => API token for the VCO
-- ENT_ID => Enterprise ID for the customer in the VCO (integer, not logical ID)
-
-Usage: 
-python3 process-assignments.py -e .my.env -i edge-assignments.csv
-
-Inputs:
-- 
-Outputs:
-- The script will generate {timestamp}_completed_assignments.csv an {timestamp}_failed_assignments.csv files.
-- Those files can be used to follow up on failures and validation.
-
+Process a CSV of edge profile swaps and apply them.
 """
 
 import argparse
@@ -88,7 +64,7 @@ async def update_edge_profile(
         else:
             update_edge_profile_shim(shared, assn)
         return (assn, True)
-    except Exception as e:
+    except Exception:
         logging.exception("edge profile swap exception")
         return (assn, False)
     finally:
@@ -177,9 +153,9 @@ async def main(
                     sec_rem,
                 )
             )
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         logging.exception("ctrl-c received")
-    except Exception as e:
+    except Exception:
         logging.exception("exception occured during assignment loop")
 
     csv_name_timestamp = int(time.time_ns() / 1000)

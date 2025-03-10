@@ -166,7 +166,7 @@ class BackendRegisterWanNode(WanNodeCreate):
 class BackendSessionCreate(BaseModel):
     msg_type: Literal["session_create"] = Field(default="session_create")
     session_id: uuid.UUID
-    target_service: str
+    target_service: ServerNodeServiceUrl 
     duration: datetime.timedelta
 
 

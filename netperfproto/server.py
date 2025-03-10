@@ -85,11 +85,14 @@ async def main():
     stop_everything = asyncio.Event()
     stop_everything_task = loop.create_task(stop_everything.wait())
 
-    tcp_factory = lambda: asyncio.create_task(tcp_server(TCP_PORT))
-    udp_factory = lambda: asyncio.create_task(udp_server(UDP_PORT))
-    ws_factory = lambda: asyncio.create_task(
-        ws_process(WS_ENDPOINT, id, SERVER_NAME, services)
-    )
+    def tcp_factory():
+        return asyncio.create_task(tcp_server(TCP_PORT))
+
+    def udp_factory():
+        return asyncio.create_task(udp_server(UDP_PORT))
+
+    def ws_factory():
+        return asyncio.create_task(ws_process(WS_ENDPOINT, id, SERVER_NAME, services))
 
     def shutdown():
         logger.info("Exit signal received. Triggering shutdown...")

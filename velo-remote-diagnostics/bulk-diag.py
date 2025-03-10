@@ -1,9 +1,13 @@
+"""
+Run remote diagnostics across many edges.
+"""
+
 from dataclasses import dataclass
 import datetime
 import json
 import asyncio
 import aiostream
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 import aiohttp
 import websockets
 import dotenv
@@ -135,9 +139,8 @@ async def main(session: aiohttp.ClientSession):
     )
 
     # stream all edges using paginated API, excluding those which are not CONNECTED
-    edge_filter: Callable[[EnterpriseEdgeListEdge], bool] = (
-        lambda e: e.edge_state == "CONNECTED"
-    )
+    def edge_filter(e: EnterpriseEdgeListEdge) -> bool: return e.edge_state == "CONNECTED"
+
     chunk_stream = (
         aiostream.stream.iterate(get_enterprise_edge_list_full(common, None, None))
         | aiostream.pipe.filter(edge_filter)

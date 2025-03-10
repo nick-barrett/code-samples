@@ -1,15 +1,13 @@
 import ijson
 import json
 import asyncio
-import time
-from aiohttp import ClientResponse, StreamReader
+from aiohttp import ClientResponse
 from typing import (
     Any,
     AsyncGenerator,
     Dict,
     Generator,
     Literal,
-    NamedTuple,
     Optional,
     TypedDict,
     cast,
@@ -18,9 +16,7 @@ from typing import (
 from datetime import datetime, timedelta
 
 from .models import (
-    EdgeFlowVisibilityNamedTuple,
     EdgeFlowVisibilityRecord,
-    EdgeLinkMetrics,
     EdgeProvisionParams,
     EnterpriseEventV2,
     EnterpriseGatewayConfigResult,
@@ -30,9 +26,11 @@ from .models import (
     LinkData,
     EnterpriseEvent,
     CommonData,
-    EdgeLink,
 )
-from .patch import *
+from patch import (
+    PatchSet,
+    serialize_patch_set
+)
 
 
 async def do_portal(c: CommonData, method: str, params: dict):
@@ -724,17 +722,17 @@ async def get_edge_link_metrics(
 
     return [
         LinkData(
-            l["link"]["edgeId"],
+            link["link"]["edgeId"],
             edge_name,
-            l["link"]["displayName"],
-            l["bestLatencyMsRx"],
-            l["bestLatencyMsTx"],
-            l["bestLossPctRx"],
-            l["bestLossPctTx"],
-            l["bestJitterMsRx"],
-            l["bestJitterMsTx"],
+            link["link"]["displayName"],
+            link["bestLatencyMsRx"],
+            link["bestLatencyMsTx"],
+            link["bestLossPctRx"],
+            link["bestLossPctTx"],
+            link["bestJitterMsRx"],
+            link["bestJitterMsTx"],
         )
-        for l in resp
+        for link in resp
     ]
 
 
@@ -1009,7 +1007,7 @@ async def get_enterprise_flow_metrics(
             "packetsTx",
             "bytesRx",
             "bytesTx",
-        ]
+        ],
     }
 
     if limit is not None:
@@ -1028,7 +1026,9 @@ async def get_enterprise_flow_metrics(
     )
 
 
-async def get_routable_applications(c: CommonData, edge_id: int | None = None) -> dict[int, str]:
+async def get_routable_applications(
+    c: CommonData, edge_id: int | None = None
+) -> dict[int, str]:
     params_obj = {"enterpriseId": c.enterprise_id}
 
     if edge_id is not None:

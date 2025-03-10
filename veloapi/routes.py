@@ -118,7 +118,6 @@ class RouteDiag:
 
         for route in routes:
             r = GatewayRouteEntry.from_dict(route)
-            lower_name = r.peer_name.lower()
             if (
                 r.type == "edge2edge"
             ):

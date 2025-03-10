@@ -1,5 +1,5 @@
 from sqlmodel import SQLModel, create_engine
-from . import models
+from . import models  # noqa: F401
 
 engine = create_engine("sqlite://")
 
