@@ -1,17 +1,21 @@
 import asyncio
 from io import TextIOWrapper
 from typing import Optional
-from dataclasses import dataclass, field
 import copy
 from aiohttp import ClientSession
 import json
 
 import dotenv
 
-from veloapi.models import CommonData
-from veloapi.util import read_env, extract_module
+from veloapi.models import CommonData, ConfigProfile
+from veloapi.util import read_env
 from veloapi.api import (
+    get_configuration_modules,
+    get_edge_configuration_stack,
     get_enterprise_configuration_profile,
+    get_enterprise_configurations_policies,
+    get_enterprise_edge_list_full_dict,
+    get_enterprise_segments,
     get_enterprise_services,
     get_object_groups,
     update_configuration_module,
@@ -46,52 +50,8 @@ Maintain mapping of objects between source and dest VCO.
 """
 
 
-@dataclass
-class ConfigModule:
-    raw: dict
-    id: int = field(init=False)
-    name: str = field(init=False)
-    data: dict[str, list | dict] = field(init=False)
-    refs: dict[str, list | dict] = field(init=False)
-
-    def __post_init__(self):
-        self.id = self.raw["id"]
-        self.name = self.raw["name"]
-        self.data = self.raw["data"]
-        self.refs = self.raw["refs"]
-
-
-@dataclass
-class ProfileConfig:
-    raw: dict
-    id: int = field(init=False)
-    name: str = field(init=False)
-    device_settings: ConfigModule = field(init=False)
-    qos: ConfigModule = field(init=False)
-    firewall: ConfigModule = field(init=False)
-
-    def __post_init__(self):
-        self.id = self.raw["id"]
-        self.name = self.raw["name"]
-
-        device_settings = extract_module(self.raw["modules"], "deviceSettings")
-        if device_settings is None:
-            raise ValueError("deviceSettings is None")
-        self.device_settings = ConfigModule(device_settings)
-
-        qos = extract_module(self.raw["modules"], "QOS")
-        if qos is None:
-            raise ValueError("QOS is None")
-        self.qos = ConfigModule(qos)
-
-        firewall = extract_module(self.raw["modules"], "firewall")
-        if firewall is None:
-            raise ValueError("firewall is None")
-        self.firewall = ConfigModule(firewall)
-
-
-async def get_profile_config(shared: CommonData, profile_id: int) -> ProfileConfig:
-    return ProfileConfig(await get_enterprise_configuration_profile(shared, profile_id))
+async def get_profile_config(shared: CommonData, profile_id: int) -> ConfigProfile:
+    return ConfigProfile(await get_enterprise_configuration_profile(shared, profile_id))
 
 
 def remove_rule_logical_ids(data: dict):
@@ -109,7 +69,7 @@ def remove_rule_logical_ids(data: dict):
 
 
 def get_segment_by_segment_id(
-    cfg: ProfileConfig, segment_id: int
+    cfg: ConfigProfile, segment_id: int
 ) -> Optional[dict[str, list | dict]]:
     return next(
         iter(
@@ -133,7 +93,7 @@ def get_matching_refs(
     ]
 
 
-def clone_generic_ref(dst_cfg: ProfileConfig, src_ref: dict) -> dict:
+def clone_generic_ref(dst_cfg: ConfigProfile, src_ref: dict) -> dict:
     ref_cloned_keys = [
         "enterpriseObjectId",
         "segmentObjectId",
@@ -149,7 +109,7 @@ def clone_generic_ref(dst_cfg: ProfileConfig, src_ref: dict) -> dict:
 
 async def clone_edge_hub_cluster_ref(
     shared: CommonData,
-    dst_cfg: ProfileConfig,
+    dst_cfg: ConfigProfile,
     src_ref: dict,
 ) -> dict:
     src_configuration_id = src_ref["configurationId"]
@@ -197,7 +157,7 @@ async def clone_edge_hub_cluster_ref(
 async def clone_edge_hub_edge_ref(
     shared: CommonData,
     edge_hub_services: list[dict],
-    dst_cfg: ProfileConfig,
+    dst_cfg: ConfigProfile,
     src_ref: dict,
 ) -> dict:
     src_ref_roles = src_ref["data"]["roles"]
@@ -245,8 +205,8 @@ async def clone_edge_hub_edge_ref(
 async def handle_vpn_edge_hub_refs(
     shared: CommonData,
     edge_hub_services: list[dict],
-    src_cfg: ProfileConfig,
-    dst_cfg: ProfileConfig,
+    src_cfg: ConfigProfile,
+    dst_cfg: ConfigProfile,
 ):
     src_refs: dict = src_cfg.device_settings.refs
     dst_refs: dict = dst_cfg.device_settings.refs
@@ -341,8 +301,8 @@ async def handle_vpn_edge_hub_refs(
 
 async def handle_vpn_edge_hub_cluster_refs(
     shared: CommonData,
-    src_cfg: ProfileConfig,
-    dst_cfg: ProfileConfig,
+    src_cfg: ConfigProfile,
+    dst_cfg: ConfigProfile,
 ):
     src_refs: dict = src_cfg.device_settings.refs
     dst_refs: dict = dst_cfg.device_settings.refs
@@ -416,7 +376,7 @@ async def handle_vpn_edge_hub_cluster_refs(
 
 
 async def handle_vpn_hub_refs(
-    shared: CommonData, src_cfg: ProfileConfig, dst_cfg: ProfileConfig
+    shared: CommonData, src_cfg: ConfigProfile, dst_cfg: ConfigProfile
 ):
     edge_hub_services = await get_edge_hubs(shared)
 
@@ -424,7 +384,7 @@ async def handle_vpn_hub_refs(
     await handle_vpn_edge_hub_cluster_refs(shared, src_cfg, dst_cfg)
 
 
-def handle_generic_refs(src_cfg: ProfileConfig, dst_cfg: ProfileConfig, ref_name: str):
+def handle_generic_refs(src_cfg: ConfigProfile, dst_cfg: ConfigProfile, ref_name: str):
     src_refs_full: dict = src_cfg.device_settings.refs
     dst_refs_full: dict = dst_cfg.device_settings.refs
 
@@ -463,7 +423,7 @@ def handle_generic_refs(src_cfg: ProfileConfig, dst_cfg: ProfileConfig, ref_name
 
 
 def generate_device_settings_data(
-    src_cfg: ProfileConfig, dst_cfg: ProfileConfig
+    src_cfg: ConfigProfile, dst_cfg: ConfigProfile
 ) -> dict:
     # deep copy to preserve source objects in case they're used elsewhere
     result = copy.deepcopy(src_cfg.device_settings.data)
@@ -556,13 +516,30 @@ async def clone_enterprise(shared_src: CommonData, shared_dst: CommonData):
 async def read_enterprise_to_file(src: CommonData, f: TextIOWrapper):
     object_groups = await get_object_groups(src)
     network_services = await get_enterprise_services(src)
-    # profiles
-    # edges
+    segments = await get_enterprise_segments(src)
+    profiles = [
+        await get_enterprise_configuration_profile(src, p.get("id"))
+        for p in await get_enterprise_configurations_policies(src)
+    ]
+    edges = []
+    async for edge in get_enterprise_edge_list_full_dict(src, None, None):
+        cfg_stack = await get_edge_configuration_stack(src, edge["id"], True)
+        cfg_profile_id = cfg_stack[0].get("id")
+        cfg_modules = await get_configuration_modules(src, cfg_profile_id, None, False, True)
+        for module in cfg_modules:
+            module["data"] = json.loads(module["data"])
+        edge["configurationModules"] = cfg_modules
+        edges.append(edge)
+
+    # TODO: decode enterprise secrets
 
     json.dump(
         {
             "object_groups": object_groups,
+            "segments": segments,
             "network_services": network_services,
+            "profiles": profiles,
+            "edges": edges,
         },
         f,
     )

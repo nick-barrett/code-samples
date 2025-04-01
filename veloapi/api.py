@@ -243,10 +243,16 @@ async def get_edge_configuration_modules(
 
 
 async def get_edge_configuration_stack(
-    shared: CommonData, edge_id: int
+    shared: CommonData, edge_id: int, no_data: bool = False
 ) -> list[dict[str, Any]]:
+    p = {
+        "edgeId": edge_id,
+    }
+    if no_data:
+        p["noData"] = True
+
     return await do_portal(
-        shared, "edge/getEdgeConfigurationStack", params={"edgeId": edge_id}
+        shared, "edge/getEdgeConfigurationStack", params=p
     )
 
 
@@ -395,12 +401,18 @@ async def set_edge_enterprise_configuration(
         },
     )
 
+async def get_enterprise_configurations_policies(c: CommonData) -> list[dict]:
+    return await do_portal(
+        c,
+        "enterprise/getEnterpriseConfigurationsPolicies",
+        {"enterpriseId": c.enterprise_id},
+    )
 
-async def get_enterprise_configuration_profile(c: CommonData, profile_id: int):
+async def get_enterprise_configuration_profile(c: CommonData, profile_id: int, with_: list[str] = ["modules"]) -> dict:
     return await do_portal(
         c,
         "configuration/getConfiguration",
-        {"id": profile_id, "enterpriseId": c.enterprise_id, "with": ["modules"]},
+        {"id": profile_id, "enterpriseId": c.enterprise_id, "with": with_},
     )
 
 

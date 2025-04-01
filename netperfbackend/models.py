@@ -3,7 +3,7 @@ from enum import Enum
 import uuid
 from typing import Annotated, List, Literal, Optional, TypedDict, Union
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import Relationship, SQLModel, Field
 from pydantic import BaseModel, UrlConstraints
 from pydantic_core import Url
 import sqlmodel
@@ -70,30 +70,40 @@ class ClientNodeCreate(ClientNodeBase):
     pass
 
 
+class Team(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    headquarters: str
+
+
+class Hero(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    secret_name: str
+    age: int | None = Field(default=None, index=True)
+
+    team_id: int | None = Field(default=None, foreign_key="team.id")
+
 class WanDirection(str, Enum):
     UPSTREAM = "upstream"
     DOWNSTREAM = "downstream"
 
 
 class WanMetric(str, Enum):
+    RATE = "rate"
     LOSS = "loss"
     LATENCY = "latency"
     JITTER = "jitter"
 
 
 class WanSettingBase(SQLModel):
-    wan_id: uuid.UUID = Field(index=True)
     direction: WanDirection
     metric: WanMetric
     value: Annotated[float, Field(ge=0)]
 
-
 class WanSetting(WanSettingBase, table=True):
-    id: uuid.UUID = Field(primary_key=True)
-    created_at: Optional[datetime.datetime] = Field(
-        default=None,
-        sa_column_kwargs={"server_default": sqlmodel.text("CURRENT_TIMESTAMP")},
-    )
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: Optional[datetime.datetime] = Field(default_factory=sqlmodel.func.now)
 
 
 class WanSettingCreate(WanSettingBase):
@@ -101,16 +111,16 @@ class WanSettingCreate(WanSettingBase):
 
 
 class WanNodeBase(SQLModel):
-    id: uuid.UUID = Field(primary_key=True)
     name: str
 
 
 class WanNode(WanNodeBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     last_contact: Optional[datetime.datetime] = Field(
         default=None,
         sa_column_kwargs={
             "server_default": sqlmodel.text("CURRENT_TIMESTAMP"),
-            "onupdate": sqlmodel.func.now(),
+            "onupdate": sqlmodel.func.now,
         },
     )
 
@@ -120,12 +130,12 @@ class WanNodeCreate(WanNodeBase):
 
 
 class TrafficSessionBase(SQLModel):
-    id: uuid.UUID = Field(primary_key=True)
     client_id: uuid.UUID
     service_id: uuid.UUID
 
 
 class TrafficSession(TrafficSessionBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     stopped: bool = Field(default=False)
     created_at: Optional[datetime.datetime] = Field(
         default=None,
@@ -137,6 +147,12 @@ class TrafficSession(TrafficSessionBase, table=True):
 class TrafficSessionCreate(TrafficSessionBase):
     duration: datetime.timedelta
 
+
+class SessionMetricPoint(SQLModel, table=True):
+    session_id: uuid.UUID = Field(foreign_key="trafficsession.id", primary_key=True)
+    timestamp: datetime.datetime = Field(primary_key=True)
+    metric: WanMetric = Field(primary_key=True)
+    value: Annotated[float, Field(ge=0)]
 
 """
 Backend WS message models
@@ -180,12 +196,12 @@ class BackendSessionEnded(BaseModel):
     session_id: uuid.UUID
 
 
-class TcpMetricPoint(TypedDict):
+class TcpMetricPoint(BaseModel):
     timestamp: datetime.datetime
     rate: float
 
 
-class UdpMetricPoint(TypedDict):
+class UdpMetricPoint(BaseModel):
     timestamp: datetime.datetime
     loss: float
     latency: float

@@ -3,4 +3,6 @@ env
 **/__pycache__
 **/.DS_STORE
 poetry.lock
+
+Cargo.lock
 /rust_target
