@@ -525,7 +525,9 @@ async def read_enterprise_to_file(src: CommonData, f: TextIOWrapper):
     async for edge in get_enterprise_edge_list_full_dict(src, None, None):
         cfg_stack = await get_edge_configuration_stack(src, edge["id"], True)
         cfg_profile_id = cfg_stack[0].get("id")
-        cfg_modules = await get_configuration_modules(src, cfg_profile_id, None, False, True)
+        cfg_modules = await get_configuration_modules(
+            src, cfg_profile_id, None, False, True
+        )
         for module in cfg_modules:
             module["data"] = json.loads(module["data"])
         edge["configurationModules"] = cfg_modules

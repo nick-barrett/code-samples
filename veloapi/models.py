@@ -1,8 +1,8 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import dataclasses
 from dataclasses_json import LetterCase
 import dataclasses_json
-from typing import NamedTuple, Optional
+from typing import Literal, NamedTuple, Optional
 from datetime import datetime
 from aiohttp import ClientSession
 
@@ -44,6 +44,7 @@ class EdgeProvisionParams:
     analytics_mode: str = "SDWAN_ONLY"
     custom_info: str = ""
     description: str = ""
+
 
 @dataclass
 class Edge:
@@ -184,6 +185,7 @@ class EdgeFlowVisibilityRecord:
     total_bytes: int
     total_packets: int
 
+
 class EdgeFlowVisibilityNamedTuple(NamedTuple):
     start_time: datetime
     application: int
@@ -210,6 +212,7 @@ class EdgeFlowVisibilityNamedTuple(NamedTuple):
     packets_tx: int
     total_bytes: int
     total_packets: int
+
 
 @dataclasses_json.dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
@@ -248,17 +251,20 @@ class EnterpriseEdgeListCloudService:
     interface: str
     segment_name: str
 
+
 @dataclasses_json.dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class ListEdgeHaData:
     cluster_id: int | None = None
     cluster_name: str | None = None
 
+
 @dataclasses_json.dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class ListEdgeHa:
     data: ListEdgeHaData | None = None
     type: str | None = None
+
 
 @dataclasses_json.dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass()
@@ -271,56 +277,12 @@ class EnterpriseEdgeListEdge:
     is_hub: bool | None
     ha: ListEdgeHa | None = None
     # configuration: dict | None
-    cloud_services: list[EnterpriseEdgeListCloudService] | None
+    # cloud_services: list[EnterpriseEdgeListCloudService] | None
 
 
 @dataclass
 class VpnEdgeActionStatus:
     id: int
-
-
-@dataclass
-class ConfigModule:
-    raw: dict
-    id: int = field(init=False)
-    name: str = field(init=False)
-    data: dict[str, list | dict] = field(init=False)
-    refs: dict[str, list | dict] = field(init=False)
-
-    def __post_init__(self):
-        self.id = self.raw["id"]
-        self.name = self.raw["name"]
-        self.data = self.raw["data"]
-        self.refs = self.raw.get("refs", {})
-
-
-@dataclass
-class ConfigurationProfile:
-    raw: dict
-    id: int = field(init=False)
-    name: str = field(init=False)
-    device_settings: ConfigModule = field(init=False)
-    qos: ConfigModule = field(init=False)
-    firewall: ConfigModule = field(init=False)
-
-    def __post_init__(self):
-        self.id = self.raw["id"]
-        self.name = self.raw["name"]
-
-        device_settings = extract_module(self.raw["modules"], "deviceSettings")
-        if device_settings is None:
-            raise ValueError("deviceSettings is None")
-        self.device_settings = ConfigModule(device_settings)
-
-        qos = extract_module(self.raw["modules"], "QOS")
-        if qos is None:
-            raise ValueError("QOS is None")
-        self.qos = ConfigModule(qos)
-
-        firewall = extract_module(self.raw["modules"], "firewall")
-        if firewall is None:
-            raise ValueError("firewall is None")
-        self.firewall = ConfigModule(firewall)
 
 
 @dataclasses_json.dataclass_json(letter_case=LetterCase.CAMEL)
@@ -344,6 +306,7 @@ class EnterpriseGatewayConfigResult:
     gateways: list[EnterpriseGatewayConfigGateway]
     segments: list[EnterpriseGatewayConfigSegment]
 
+
 @dataclasses_json.dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class GatewayRouteEntry:
@@ -362,6 +325,7 @@ class GatewayRouteEntry:
     mode: str
     lost_reason: str
 
+
 @dataclasses_json.dataclass_json
 @dataclass
 class EdgeRouteEntry:
@@ -369,14 +333,15 @@ class EdgeRouteEntry:
     route_address: str
     route_netmask: str
 
+
 @dataclasses_json.dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class GetEnterpriseResult:
     id: int
-    created: str
-    modified: str
-    network_id: int
-    gateway_pool_id: int
+    created: datetime
+    modified: datetime
+    network_id: int | None
+    gateway_pool_id: int | None
     alerts_enabled: int
     operator_alerts_enabled: int
     endpoint_pki_mode: str
@@ -386,11 +351,20 @@ class GetEnterpriseResult:
     logical_id: str
     account_number: str
 
+
+ConfigModuleName = Literal[
+    "deviceSettings",
+    "WAN",
+    "QOS",
+    "firewall",
+]
+
+
 @dataclass
 class ConfigModule:
     raw: dict
     id: int = dataclasses.field(init=False)
-    name: str = dataclasses.field(init=False)
+    name: ConfigModuleName = dataclasses.field(init=False)
     data: dict[str, list | dict] = dataclasses.field(init=False)
     refs: dict[str, list | dict] = dataclasses.field(init=False)
 
@@ -415,25 +389,20 @@ class ConfigProfile:
         self.id = self.raw["id"]
         self.name = self.raw["name"]
 
-        device_settings = extract_module(self.raw["modules"], "deviceSettings")
+        modules = self.raw["modules"]
+        if not isinstance(modules, dict):
+            raise ValueError("no modules found in config profile")
+
+        device_settings = extract_module(modules, "deviceSettings")
         if device_settings is None:
             raise ValueError("deviceSettings is None")
         self.device_settings = ConfigModule(device_settings)
 
-        wan = extract_module(self.raw["modules"], "WAN")
-        if wan is not None:
-            self.wan = ConfigModule(wan)
-        else:
-            self.wan = None
+        wan = extract_module(modules, "WAN")
+        self.wan = ConfigModule(wan) if wan is not None else None
 
-        qos = extract_module(self.raw["modules"], "QOS")
-        if qos is not None:
-            self.qos = ConfigModule(qos)
-        else:
-            self.qos = None
+        qos = extract_module(modules, "QOS")
+        self.qos = ConfigModule(qos) if qos is not None else None
 
-        firewall = extract_module(self.raw["modules"], "firewall")
-        if firewall is not None:
-            self.firewall = ConfigModule(firewall)
-        else:
-            self.firewall = None
+        firewall = extract_module(modules, "firewall")
+        self.firewall = ConfigModule(firewall) if firewall is not None else None

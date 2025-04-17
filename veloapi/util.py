@@ -8,9 +8,9 @@ def read_env(name: str) -> str:
     return value
 
 
-def make_chunks[
-    T
-](a: Sequence[T], chunk_size: int) -> Generator[Sequence[T], None, None]:
+def make_chunks[T](
+    a: Sequence[T], chunk_size: int
+) -> Generator[Sequence[T], None, None]:
     a = list(a)
     while a:
         chunk, a = a[:chunk_size], a[chunk_size:]

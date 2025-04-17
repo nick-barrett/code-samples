@@ -27,7 +27,7 @@ from .models import (
     EnterpriseEvent,
     CommonData,
 )
-from patch import (
+from .patch import (
     PatchSet,
     serialize_patch_set
 )
