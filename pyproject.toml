@@ -1,3 +1,5 @@
+#:schema https://json.schemastore.org/pyproject.json
+
 [project]
 name = "code-samples"
 version = "0.1.0"
@@ -39,8 +41,31 @@ dependencies = [
 velomcp = "velomcp:main"
 velo_api_tester = "velo_api_tester:main"
 
-[dependency-groups]
-dev = ["black>=24.8.0,<25"]
+[tool.ruff]
+line-length = 120
+select = ["ALL"]
+target-version = "py313"
+exclude = [
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv",
+    ".mypy_cache",
+    ".git",
+    ".vscode",
+    "node_modules",
+    ".cargo",
+    "rust_target",
+]
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -65,3 +90,4 @@ include = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
